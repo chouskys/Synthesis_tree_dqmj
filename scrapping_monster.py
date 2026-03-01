@@ -110,4 +110,5 @@ class MonstersBanks:
 
 
 mb = MonstersBanks()
+#mb.save_links_to_csv()
 mb.get_synthese_monster()
