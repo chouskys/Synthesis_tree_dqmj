@@ -19,9 +19,10 @@ class MonstersBanks:
         })
 
         self.links = self.get_all_monsters_link()
+        self.syn_dataframe = self.get_synthese_monster()
         
 
-    def _get_page_html_via_api(self, page_name: str) -> str:
+    def _get_page_html_via_api(self, page_name: str, index=None) -> str:
         params = {
             "action": "parse",
             "page": page_name,
@@ -30,7 +31,7 @@ class MonstersBanks:
         }
 
         r = self.session.get(self.api_url, params=params, timeout=30)
-        print("api status:", r.status_code, page_name)
+        print("api status:", r.status_code, index, page_name)
         r.raise_for_status()
 
         data = r.json()
@@ -76,13 +77,14 @@ class MonstersBanks:
         data = {}
 
         for idx, link in enumerate(column_link_monster[1:]):
-            html = self._get_page_html_via_api(re.sub(r"^/wiki/", "", link))
+            html = self._get_page_html_via_api(re.sub(r"^/wiki/", "", link), index=idx+1)
             soup = BeautifulSoup(html, "html.parser")
 
             if not soup.select_one("span#Synthesis"):
                 data[idx]= {
                     "name_monster": re.sub(r"^/wiki/", "", link),
-                    "parents" : "NONE",
+                    "parent_1" : "NONE",
+                    "parent_2" : "NONE",
                     "comment": "NONE"
                 }
                 continue
@@ -91,18 +93,27 @@ class MonstersBanks:
             table_syn = soup.select_one("table.wikitable")
 
             synthese_comment = table_syn.find_all("tr")[-1].text
+
+            parents = table_syn.find_all("td")
+
+            parent1 = list({a.get("title") for a in parents[0].select("a[title]")})
+            parent2 = list({a.get("title") for a in parents[1].select("a[title]")})
             
             parents = " + ".join([el.text.strip() for el in table_syn.find_all("td")])
            
             data[idx] = {
                 "name_monster": re.sub(r"^/wiki/", "", link),
-                "parents" : parents,
+                "parent_1" : " | ".join(parent1),
+                "parent_2" : " | ".join(parent2), 
                 "comment": synthese_comment.strip()
             }
 
-            #print(data)
-        df = pd.DataFrame(data).T
-        print(df)
+        return pd.DataFrame(data).T
+    
+    def save_synthese_to_csv(self):
+
+        df = pd.DataFrame(self.syn_dataframe)
+        print(df.shape)
         df.to_csv("Syn_mosnter.csv",  index=False, encoding="utf-8")
         
         
@@ -111,4 +122,5 @@ class MonstersBanks:
 
 mb = MonstersBanks()
 #mb.save_links_to_csv()
-mb.get_synthese_monster()
+#mb.get_synthese_monster()
+mb.save_synthese_to_csv()
