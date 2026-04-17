@@ -119,7 +119,7 @@ class MonstersBanks:
         
 
 
-
+## update to do test 
 mb = MonstersBanks()
 #mb.save_links_to_csv()
 #mb.get_synthese_monster()
